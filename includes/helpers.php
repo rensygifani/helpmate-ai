@@ -90,6 +90,13 @@ function now_string(): string
     return date('Y-m-d H:i:s');
 }
 
+// ID dari Firebase hanya berisi huruf, angka, tanda minus, dan garis bawah.
+// Dipakai untuk menolak ID aneh dari URL sebelum dipakai sebagai path database.
+function valid_id(string $id): bool
+{
+    return (bool) preg_match('/^[-A-Za-z0-9_]{1,60}$/', $id);
+}
+
 function label(array $map, ?string $key): string
 {
     return $map[$key ?? ''] ?? (string) $key;

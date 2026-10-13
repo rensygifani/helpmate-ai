@@ -9,8 +9,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrf_check();
 
 $id = (string) ($_POST['id'] ?? '');
-if ($id === '') {
+if (!valid_id($id)) {
     flash('error', 'ID artikel tidak valid.');
+    redirect('knowledge/index.php');
+}
+
+// Pastikan artikelnya masih ada sebelum dihapus
+$exists = db_get('knowledge_base/' . $id);
+if (!$exists['ok'] || !is_array($exists['data'])) {
+    flash('error', 'Artikel tidak ditemukan.');
     redirect('knowledge/index.php');
 }
 

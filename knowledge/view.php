@@ -5,7 +5,7 @@ require __DIR__ . '/../includes/kb_form.php';
 $user = require_login();
 
 $id = (string) ($_GET['id'] ?? '');
-$res = $id !== '' ? db_get('knowledge_base/' . $id) : ['ok' => false, 'data' => null];
+$res = valid_id($id) ? db_get('knowledge_base/' . $id) : ['ok' => false, 'data' => null];
 $a = $res['ok'] && is_array($res['data']) ? $res['data'] : null;
 
 if ($a === null) {
