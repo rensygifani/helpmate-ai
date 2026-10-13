@@ -5,7 +5,7 @@ require __DIR__ . '/../includes/kb_form.php';
 $user = require_kb_editor();
 
 $id = (string) ($_GET['id'] ?? $_POST['id'] ?? '');
-$res = $id !== '' ? db_get('knowledge_base/' . $id) : ['ok' => false, 'data' => null];
+$res = valid_id($id) ? db_get('knowledge_base/' . $id) : ['ok' => false, 'data' => null];
 $existing = $res['ok'] && is_array($res['data']) ? $res['data'] : null;
 
 if ($existing === null) {
