@@ -197,5 +197,4 @@ knowledge_base/{id}          title, category, keywords, content, author_uid, aut
 ## Keamanan kunci
 
 - `config.local.php` berisi kunci Firebase dan Gemini, dan tidak diunggah ke GitHub karena ada di `.gitignore`.
-- Contoh isi konfigurasi ada di `config.example.php`, tanpa nilai kunci asli.
 - Kunci Gemini hanya dibaca di server PHP dan tidak dikirim ke browser.
