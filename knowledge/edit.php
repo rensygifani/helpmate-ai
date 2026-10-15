@@ -39,3 +39,4 @@ render_header('Ubah Artikel Panduan', 'knowledge');
 render_errors($errors);
 render_kb_form($a, 'Simpan perubahan');
 render_footer();
+ 
