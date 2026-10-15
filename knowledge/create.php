@@ -32,3 +32,4 @@ render_header('Tambah Artikel Panduan', 'knowledge');
 render_errors($errors);
 render_kb_form($a, 'Simpan artikel');
 render_footer();
+ 
