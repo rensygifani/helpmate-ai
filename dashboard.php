@@ -14,17 +14,50 @@ foreach ($tickets as $t) {
     $byStatus[$s] = ($byStatus[$s] ?? 0) + 1;
 }
 
+usort($tickets, fn($a, $b) => strcmp($b['created_at'] ?? '', $a['created_at'] ?? ''));
+$recent = array_slice($tickets, 0, 5);
+
 render_header('Dashboard', 'dashboard');
 ?>
+<section class="hero">
+    <div>
+        <h2>Halo, <?= e($user['name']) ?></h2>
+        <p><?= is_staff($user) ? 'Tinjau tiket yang masuk dan bantu merchant menyelesaikan kendalanya.' : 'Ada kendala transaksi? Buat tiket dan pantau penanganannya di sini.' ?></p>
+    </div>
+    <div class="actions">
+        <a class="btn" href="<?= e(url('tickets/create.php')) ?>">Buat tiket baru</a>
+        <a class="btn btn-light" href="<?= e(url('knowledge/index.php')) ?>">Lihat Knowledge Base</a>
+    </div>
+</section>
+
 <div class="grid">
-    <div class="card stat"><span class="num"><?= count($tickets) ?></span><span>Total tiket<?= is_staff($user) ? '' : ' Anda' ?></span></div>
+    <div class="card stat st-total"><span class="num"><?= count($tickets) ?></span><span>Total tiket<?= is_staff($user) ? '' : ' Anda' ?></span></div>
     <?php foreach (STATUSES as $key => $text): ?>
-        <div class="card stat"><span class="num"><?= (int) ($byStatus[$key] ?? 0) ?></span><span><?= e($text) ?></span></div>
+        <div class="card stat st-<?= e($key) ?>"><span class="num"><?= (int) ($byStatus[$key] ?? 0) ?></span><span><?= e($text) ?></span></div>
     <?php endforeach; ?>
-    <div class="card stat"><span class="num"><?= count($kb) ?></span><span>Artikel panduan</span></div>
+    <div class="card stat st-kb"><span class="num"><?= count($kb) ?></span><span>Artikel panduan</span></div>
 </div>
-<p>
-    <a class="btn" href="<?= e(url('tickets/create.php')) ?>">Buat tiket baru</a>
-    <a class="btn btn-light" href="<?= e(url('knowledge/index.php')) ?>">Lihat Knowledge Base</a>
-</p>
+
+<div class="section-title">
+    <h2>Tiket terbaru</h2>
+    <a href="<?= e(url('tickets/index.php')) ?>">Lihat semua</a>
+</div>
+<div class="card table-wrap">
+<table>
+    <thead><tr><th>Judul</th><th>Prioritas</th><th>Status</th><th>Dibuat</th></tr></thead>
+    <tbody>
+    <?php if (!$recent): ?>
+        <tr><td colspan="4" class="muted">Belum ada tiket. Buat tiket pertama Anda untuk melaporkan kendala.</td></tr>
+    <?php endif; ?>
+    <?php foreach ($recent as $t): ?>
+        <tr>
+            <td><a href="<?= e(url('tickets/view.php?id=' . urlencode($t['id']))) ?>"><?= e($t['title'] ?? '') ?></a></td>
+            <td><span class="badge p-<?= e($t['priority'] ?? '') ?>"><?= e(label(PRIORITIES, $t['priority'] ?? '')) ?></span></td>
+            <td><span class="badge s-<?= e($t['status'] ?? '') ?>"><?= e(label(STATUSES, $t['status'] ?? '')) ?></span></td>
+            <td class="muted"><?= e($t['created_at'] ?? '') ?></td>
+        </tr>
+    <?php endforeach; ?>
+    </tbody>
+</table>
+</div>
 <?php render_footer();

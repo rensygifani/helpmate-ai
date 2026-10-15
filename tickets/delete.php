@@ -1,5 +1,5 @@
 <?php
-// Delete: hapus tiket (db_delete pada tickets/{id})
+// Delete: hapus tiket (db_delete pada tickets/{id}) beserta lampirannya
 require __DIR__ . '/../includes/bootstrap.php';
 require __DIR__ . '/../includes/ticket_form.php';
 $user = require_login();
@@ -19,5 +19,9 @@ if ($t === null || !can_delete_ticket($user, $t)) {
 }
 
 $r = db_delete('tickets/' . $id);
+if ($r['ok']) {
+    db_delete('ticket_files/' . $id);   // hapus juga lampirannya
+    db_delete('followups/' . $id);      // dan riwayat tindak lanjutnya
+}
 flash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Tiket berhasil dihapus.' : 'Gagal menghapus: ' . $r['error']);
 redirect('tickets/index.php');

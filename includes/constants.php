@@ -33,8 +33,28 @@ const PAYMENT_METHODS = [
 ];
 
 const ROLES = [
-    'merchant'   => 'Merchant',
-    'cs'         => 'CS (Customer Support)',
-    'tim_teknis' => 'Tim Teknis',
-    'admin'      => 'Admin',
+    'merchant'    => 'Merchant',
+    'cs'          => 'CS (Customer Support)',
+    'tim_teknis'  => 'Tim Teknis',
+    'admin'       => 'Admin',
+    'super_admin' => 'Super Admin',
+];
+
+// Detail asal akun merchant
+const ACCOUNT_TYPES = [
+    'individu'   => 'Perorangan / pengguna pribadi',
+    'sekolah'    => 'Sekolah / institusi pendidikan',
+    'perusahaan' => 'Perusahaan / bisnis',
+    'klien'      => 'Klien / mitra',
+    'lainnya'    => 'Lainnya',
+];
+
+// Jenis tindakan pada Riwayat Tindak Lanjut
+const FOLLOWUP_TYPES = [
+    'catatan'          => 'Catatan internal',
+    'hubungi_merchant' => 'Menghubungi merchant',
+    'balasan'          => 'Balasan ke merchant',
+    'eskalasi_teknis'  => 'Eskalasi ke tim teknis',
+    'perbaikan'        => 'Perbaikan / tindakan teknis',
+    'selesai'          => 'Penyelesaian',
 ];

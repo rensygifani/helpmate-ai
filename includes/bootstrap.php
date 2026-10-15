@@ -21,6 +21,7 @@ require __DIR__ . '/constants.php';
 require __DIR__ . '/firebase.php';
 require __DIR__ . '/helpers.php';
 require __DIR__ . '/layout.php';
+require __DIR__ . '/gemini.php';
 
 if (!cfg('FIREBASE_API_KEY') || !cfg('FIREBASE_DB_URL')) {
     http_response_code(500);

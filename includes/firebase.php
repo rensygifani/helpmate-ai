@@ -60,7 +60,7 @@ function auth_error_text(?string $code): string
         'INVALID_PASSWORD'            => 'Email atau password salah.',
         'EMAIL_NOT_FOUND'             => 'Email atau password salah.',
         'USER_DISABLED'               => 'Akun ini dinonaktifkan.',
-        'WEAK_PASSWORD'               => 'Password terlalu lemah (minimal 6 karakter).',
+        'WEAK_PASSWORD'               => 'Password terlalu lemah. Gunakan minimal 8 karakter dengan huruf kapital, huruf kecil, angka, dan karakter khusus.',
         'TOO_MANY_ATTEMPTS_TRY_LATER' => 'Terlalu banyak percobaan. Coba lagi beberapa saat lagi.',
         'INVALID_EMAIL'               => 'Format email tidak valid.',
     ];

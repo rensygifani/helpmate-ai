@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 unset($_SESSION['pending_token']);
 
-                // Ambil nama dan role pengguna dari Realtime Database
+                // Ambil nama, role, dan jenis akun pengguna dari Realtime Database
                 $prof = db_get('users/' . $uid, $token);
                 if (!$prof['ok'] || !is_array($prof['data'])) {
                     $newProfile = ['name' => explode('@', $email)[0], 'email' => $email, 'role' => 'merchant', 'created_at' => now_string()];
@@ -61,6 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'email'        => $email,
                     'name'         => (string) ($prof['data']['name'] ?? $email),
                     'role'         => (string) ($prof['data']['role'] ?? 'merchant'),
+                    'account_type' => (string) ($prof['data']['account_type'] ?? ''),
+                    'organization' => (string) ($prof['data']['organization'] ?? ''),
+                    'photo'        => (string) ($prof['data']['photo'] ?? ''),
                     'idToken'      => $token,
                     'refreshToken' => $login['data']['refreshToken'],
                     'expires_at'   => time() + (int) ($login['data']['expiresIn'] ?? 3600),

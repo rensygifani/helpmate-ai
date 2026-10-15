@@ -38,7 +38,7 @@ if (!$res['ok']) {
     <a class="btn btn-small" href="<?= e(url('tickets/create.php')) ?>">Buat tiket</a>
 </form>
 
-<div class="card">
+<div class="card table-wrap">
 <table>
     <thead>
         <tr><th>Judul</th><th>Kategori</th><th>Prioritas</th><th>Status</th><th>Pelapor</th><th>Dibuat</th><th>Aksi</th></tr>

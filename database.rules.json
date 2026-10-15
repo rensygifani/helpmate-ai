@@ -3,9 +3,13 @@
     ".read": false,
     ".write": false,
     "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'super_admin'",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid && (!data.exists() ? newData.child('role').val() === 'merchant' : newData.child('role').val() === data.child('role').val())"
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'super_admin' || (auth.uid === $uid && (!data.exists() ? newData.child('role').val() === 'merchant' : newData.child('role').val() === data.child('role').val())))",
+        "photo": {
+          ".validate": "newData.isString() && newData.val().length < 100000"
+        }
       }
     },
     "tickets": {
@@ -15,11 +19,29 @@
         ".validate": "newData.hasChildren(['title', 'description', 'status', 'owner_uid'])"
       }
     },
+    "ticket_files": {
+      "$ticketId": {
+        ".read": "auth != null",
+        "$fileId": {
+          ".write": "auth != null",
+          ".validate": "newData.hasChildren(['name', 'data', 'owner_uid']) && newData.child('owner_uid').val() === auth.uid && newData.child('data').isString() && newData.child('data').val().length < 600000"
+        }
+      }
+    },
     "knowledge_base": {
       ".read": "auth != null",
       "$kbId": {
-        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'cs')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'cs')",
         ".validate": "newData.hasChildren(['title', 'content'])"
+      }
+    },
+    "followups": {
+      "$ticketId": {
+        ".read": "auth != null",
+        "$fid": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'cs' || root.child('users').child(auth.uid).child('role').val() === 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') && (!data.exists() || data.child('author_uid').val() === auth.uid || (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin'))",
+          ".validate": "newData.hasChildren(['type', 'content', 'author_uid']) && newData.child('content').isString() && newData.child('content').val().length <= 2000 && newData.child('author_uid').val() === (data.exists() ? data.child('author_uid').val() : auth.uid)"
+        }
       }
     }
   }

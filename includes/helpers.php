@@ -66,13 +66,13 @@ function require_login(): array
 function is_staff(?array $user = null): bool
 {
     $user = $user ?? current_user();
-    return $user !== null && in_array($user['role'] ?? '', ['cs', 'tim_teknis', 'admin'], true);
+    return $user !== null && in_array($user['role'] ?? '', ['cs', 'tim_teknis', 'admin', 'super_admin'], true);
 }
 
 function is_kb_editor(?array $user = null): bool
 {
     $user = $user ?? current_user();
-    return $user !== null && in_array($user['role'] ?? '', ['cs', 'admin'], true);
+    return $user !== null && in_array($user['role'] ?? '', ['cs', 'admin', 'super_admin'], true);
 }
 
 function require_kb_editor(): array
@@ -80,7 +80,23 @@ function require_kb_editor(): array
     $user = require_login();
     if (!is_kb_editor($user)) {
         http_response_code(403);
-        exit('Hanya CS atau Admin yang dapat mengelola Knowledge Base.');
+        exit('Hanya CS, Admin, atau Super Admin yang dapat mengelola Knowledge Base.');
+    }
+    return $user;
+}
+
+function is_super_admin(?array $user = null): bool
+{
+    $user = $user ?? current_user();
+    return $user !== null && ($user['role'] ?? '') === 'super_admin';
+}
+
+function require_super_admin(): array
+{
+    $user = require_login();
+    if (!is_super_admin($user)) {
+        http_response_code(403);
+        exit('Halaman ini khusus Super Admin.');
     }
     return $user;
 }
@@ -125,4 +141,85 @@ function collection_to_list($data): array
     }
     usort($list, fn($a, $b) => strcmp((string) ($b['created_at'] ?? ''), (string) ($a['created_at'] ?? '')));
     return $list;
+}
+
+// ---------- Validasi password & akun (dipakai register, profil, dan admin/users) ----------
+function pw_rules(): array
+{
+    return [
+        'len'     => ['ok' => 'Minimal 8 karakter',   'bad' => 'Password kurang dari 8 karakter'],
+        'upper'   => ['ok' => 'Ada huruf kapital',    'bad' => 'Tidak ada huruf kapital (A-Z)'],
+        'lower'   => ['ok' => 'Ada huruf kecil',      'bad' => 'Tidak ada huruf kecil (a-z)'],
+        'digit'   => ['ok' => 'Ada angka',            'bad' => 'Tidak ada angka (0-9)'],
+        'special' => ['ok' => 'Ada karakter khusus',  'bad' => 'Tidak ada karakter khusus (contoh: ! @ # $ %)'],
+    ];
+}
+
+function pw_failed(string $p): array
+{
+    $f = [];
+    if (mb_strlen($p) < 8)                    $f[] = 'len';
+    if (!preg_match('/[A-Z]/', $p))           $f[] = 'upper';
+    if (!preg_match('/[a-z]/', $p))           $f[] = 'lower';
+    if (!preg_match('/[0-9]/', $p))           $f[] = 'digit';
+    if (!preg_match('/[^A-Za-z0-9\s]/', $p))  $f[] = 'special';
+    return $f;
+}
+
+function field_errors(array $errors, string $key): void
+{
+    $msgs = array_map('e', $errors[$key] ?? []);
+    echo '<div class="field-error" data-for="' . e($key) . '">' . implode('<br>', $msgs) . '</div>';
+}
+
+// Validasi jenis akun + nama institusi. Mengembalikan [data bersih, error per kolom]
+function account_input(array $in): array
+{
+    $errors = [];
+    $type = (string) ($in['account_type'] ?? '');
+    $org  = trim((string) preg_replace('/\s+/', ' ', (string) ($in['organization'] ?? '')));
+    if (!isset(ACCOUNT_TYPES[$type])) {
+        $errors['account_type'][] = 'Pilih jenis akun.';
+    } elseif ($type === 'individu') {
+        $org = '';
+    } elseif ($org === '') {
+        $errors['organization'][] = 'Nama sekolah / perusahaan / institusi wajib diisi.';
+    }
+    if (mb_strlen($org) > 100) {
+        $errors['organization'][] = 'Nama institusi maksimal 100 karakter.';
+    }
+    return [['account_type' => $type, 'organization' => $org], $errors];
+}
+
+function render_account_fields(string $type, string $org, array $errors = []): void
+{
+    ?>
+    <label>Jenis akun
+        <select name="account_type" class="<?= !empty($errors['account_type']) ? 'invalid' : '' ?>">
+            <option value="">Pilih jenis akun</option>
+            <?php foreach (ACCOUNT_TYPES as $k => $v): ?>
+                <option value="<?= e($k) ?>"<?= $k === $type ? ' selected' : '' ?>><?= e($v) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <?php field_errors($errors, 'account_type'); ?>
+    </label>
+    <label class="org-field">Nama sekolah / perusahaan / institusi
+        <input type="text" name="organization" value="<?= e($org) ?>" maxlength="100"
+               placeholder="Contoh: SMA Negeri 1 Surabaya / PT Maju Net"
+               class="<?= !empty($errors['organization']) ? 'invalid' : '' ?>">
+        <?php field_errors($errors, 'organization'); ?>
+    </label>
+    <?php
+}
+
+// Tampilkan avatar: foto profil jika ada, jika tidak huruf pertama nama
+function render_avatar(array $u, string $extra = ''): void
+{
+    $photo = (string) ($u['photo'] ?? '');
+    $cls   = trim('avatar ' . $extra);
+    if ($photo !== '' && str_starts_with($photo, 'data:image/jpeg;base64,')) {
+        echo '<img class="' . e($cls) . '" src="' . e($photo) . '" alt="Foto profil">';
+    } else {
+        echo '<span class="' . e($cls) . '">' . e(strtoupper(mb_substr((string) ($u['name'] ?? '?'), 0, 1))) . '</span>';
+    }
 }
