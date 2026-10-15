@@ -103,8 +103,3 @@ tickets/{id}           title, description, category, payment_method, transaction
 knowledge_base/{id}    title, category, keywords, content, author_uid, author_email, created_at, updated_at
 ```
 
-## Catatan
-
-- File `config.local.php` berisi kunci Firebase dan sudah dimasukkan ke `.gitignore`, jadi jangan di-upload ke GitHub.
-- Aturan database saat ini masih sederhana. Semua user yang sudah login bisa membaca data tiket, tetapi di website tiket merchant sudah difilter supaya hanya miliknya yang tampil. Aturannya akan diperketat di checkpoint berikutnya.
-- Firebase Hosting tidak bisa menjalankan PHP, jadi untuk deploy akhir dipakai hosting lain yang mendukung PHP.
