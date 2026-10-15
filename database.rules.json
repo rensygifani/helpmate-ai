@@ -37,7 +37,7 @@
     },
     "followups": {
       "$ticketId": {
-        ".read": "auth != null",
+        ".read": "auth != null && (root.child('tickets').child($ticketId).child('owner_uid').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'cs' || root.child('users').child(auth.uid).child('role').val() === 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin')",
         "$fid": {
           ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'cs' || root.child('users').child(auth.uid).child('role').val() === 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin') && (!data.exists() || data.child('author_uid').val() === auth.uid || (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'super_admin'))",
           ".validate": "newData.hasChildren(['type', 'content', 'author_uid']) && newData.child('content').isString() && newData.child('content').val().length <= 2000 && newData.child('author_uid').val() === (data.exists() ? data.child('author_uid').val() : auth.uid)"
