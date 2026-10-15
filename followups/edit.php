@@ -46,3 +46,4 @@ echo '<div class="card">';
 render_followup_form($f, 'followups/edit.php', $ticketId, 'Simpan perubahan', url($viewUrl), 'followup-edit');
 echo '</div>';
 render_footer();
+ 
