@@ -31,4 +31,3 @@ render_header('Artikel Panduan', 'knowledge');
     </p>
 </div>
 <?php render_footer();
-

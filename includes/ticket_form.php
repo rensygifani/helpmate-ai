@@ -88,6 +88,42 @@ function render_ticket_form(array $t, bool $staff, string $submitLabel, ?array $
     <label>Deskripsi (ceritakan kronologi kejadian)
         <textarea name="description" rows="6" maxlength="3000" required><?= e($t['description'] ?? '') ?></textarea>
     </label>
+    <p class="hint">Jangan menulis nomor kartu lengkap, PIN, OTP, atau password. Data seperti itu otomatis disamarkan sebelum disimpan.</p>
+    <?php if ($files !== null): ?>
+    <div id="kb-suggest" class="kb-suggest" hidden></div>
+    <script>
+    (function () {
+        var box = document.getElementById('kb-suggest');
+        var t = document.querySelector('[name=title]'), d = document.querySelector('[name=description]'), timer = null;
+        if (!box || !t || !d) return;
+        function render(items) {
+            box.innerHTML = '';
+            if (!items.length) { box.hidden = true; return; }
+            var h = document.createElement('h4');
+            h.textContent = 'Panduan yang mungkin membantu sebelum Anda mengirim tiket';
+            var ul = document.createElement('ul');
+            items.forEach(function (it) {
+                var li = document.createElement('li'), a = document.createElement('a'), s = document.createElement('span');
+                a.href = it.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = it.title;
+                s.className = 'snip'; s.textContent = it.snippet;
+                li.appendChild(a); li.appendChild(s); ul.appendChild(li);
+            });
+            box.appendChild(h); box.appendChild(ul); box.hidden = false;
+        }
+        function run() {
+            var q = (t.value + ' ' + d.value).trim();
+            if (q.length < 8) { box.hidden = true; return; }
+            fetch(<?= json_encode(url('knowledge/suggest.php')) ?> + '?q=' + encodeURIComponent(q), {credentials: 'same-origin'})
+                .then(function (r) { return r.json(); })
+                .then(function (j) { render(j.items || []); })
+                .catch(function () {});
+        }
+        [t, d].forEach(function (el) {
+            el.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(run, 600); });
+        });
+    })();
+    </script>
+    <?php endif; ?>
     <div class="row">
         <label>Metode bayar
             <select name="payment_method"><?php render_options(PAYMENT_METHODS, $t['payment_method'] ?? '', true); ?></select>

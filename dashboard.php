@@ -2,10 +2,8 @@
 require __DIR__ . '/includes/bootstrap.php';
 $user = require_login();
 
-$tickets = collection_to_list(db_get('tickets')['data'] ?? null);
-if (!is_staff($user)) {
-    $tickets = array_values(array_filter($tickets, fn($t) => ($t['owner_uid'] ?? '') === $user['uid']));
-}
+$tickets = tickets_for_user($user);
+$alerts  = is_staff($user) ? incident_alerts($tickets) : [];
 $kb = collection_to_list(db_get('knowledge_base')['data'] ?? null);
 
 $byStatus = [];
@@ -29,6 +27,15 @@ render_header('Dashboard', 'dashboard');
         <a class="btn btn-light" href="<?= e(url('knowledge/index.php')) ?>">Lihat Knowledge Base</a>
     </div>
 </section>
+
+<?php
+$escalated = is_staff($user) ? count(array_filter($tickets, fn($t) => !empty($t['escalated']) && ($t['status'] ?? '') !== 'selesai')) : 0;
+if ($escalated > 0 && in_array($user['role'] ?? '', ['tim_teknis', 'admin', 'super_admin'], true)): ?>
+    <div class="alert alert-warning"><strong>Tim Teknis:</strong> <?= (int) $escalated ?> tiket tereskalasi menunggu penanganan. <a href="<?= e(url('tickets/index.php?esc=1')) ?>">Lihat tiketnya</a></div>
+<?php endif; ?>
+<?php foreach ($alerts as $al): ?>
+    <div class="alert alert-warning"><strong>Peringatan gangguan:</strong> <?= (int) $al['count'] ?> laporan "<?= e(label(CATEGORIES, $al['category'])) ?>" masuk dalam <?= (int) $al['minutes'] ?> menit terakhir. Periksa kemungkinan gangguan sistem.</div>
+<?php endforeach; ?>
 
 <div class="grid">
     <div class="card stat st-total"><span class="num"><?= count($tickets) ?></span><span>Total tiket<?= is_staff($user) ? '' : ' Anda' ?></span></div>

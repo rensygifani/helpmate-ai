@@ -24,4 +24,3 @@ if (!$exists['ok'] || !is_array($exists['data'])) {
 $r = db_delete('knowledge_base/' . $id);
 flash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Artikel berhasil dihapus.' : 'Gagal menghapus: ' . $r['error']);
 redirect('knowledge/index.php');
- 

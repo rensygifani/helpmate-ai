@@ -57,4 +57,14 @@ const FOLLOWUP_TYPES = [
     'eskalasi_teknis'  => 'Eskalasi ke tim teknis',
     'perbaikan'        => 'Perbaikan / tindakan teknis',
     'selesai'          => 'Penyelesaian',
+    'tanggapan_merchant' => 'Tanggapan merchant',
 ];
+
+// Jenis tindakan yang boleh dipilih petugas (tanggapan merchant dibuat oleh merchant sendiri)
+const FOLLOWUP_STAFF_TYPES = ['catatan', 'hubungi_merchant', 'balasan', 'eskalasi_teknis', 'perbaikan', 'selesai'];
+
+// Jenis tindakan yang boleh dibaca merchant. Catatan internal dan tindakan teknis tidak ditampilkan ke merchant.
+const FOLLOWUP_MERCHANT_VISIBLE = ['hubungi_merchant', 'balasan', 'selesai', 'tanggapan_merchant'];
+
+// Batas waktu respons pertama (jam) menurut prioritas tiket (SLA)
+const SLA_HOURS = ['kritis' => 1, 'tinggi' => 4, 'sedang' => 24, 'rendah' => 72];

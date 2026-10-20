@@ -4,19 +4,18 @@ require __DIR__ . '/../includes/bootstrap.php';
 require __DIR__ . '/../includes/ticket_form.php';
 $user = require_login();
 
-$res = db_get('tickets');
-$tickets = $res['ok'] ? collection_to_list($res['data']) : [];
-
-// Merchant cuma bisa lihat tiket miliknya sendiri, CS dan admin bisa lihat semua
-if (!is_staff($user)) {
-    $tickets = array_values(array_filter($tickets, fn($t) => ($t['owner_uid'] ?? '') === $user['uid']));
-}
+// Merchant hanya menerima tiket miliknya (difilter di Firebase), CS dan admin menerima semua
+$tickets = tickets_for_user($user);
 
 // Fitur cari dan filter status
 $q = trim((string) ($_GET['q'] ?? ''));
 $fs = (string) ($_GET['status'] ?? '');
-$tickets = array_values(array_filter($tickets, function ($t) use ($q, $fs) {
+$fe = is_staff($user) && !empty($_GET['esc']);   // hanya tiket yang dieskalasi ke tim teknis
+$tickets = array_values(array_filter($tickets, function ($t) use ($q, $fs, $fe) {
     if ($fs !== '' && ($t['status'] ?? '') !== $fs) {
+        return false;
+    }
+    if ($fe && (empty($t['escalated']) || ($t['status'] ?? '') === 'selesai')) {
         return false;
     }
     if ($q !== '') {
@@ -27,13 +26,13 @@ $tickets = array_values(array_filter($tickets, function ($t) use ($q, $fs) {
 }));
 
 render_header('Tiket Kendala', 'tickets');
-if (!$res['ok']) {
-    render_errors(['Gagal membaca data dari Firebase: ' . $res['error']]);
-}
 ?>
 <form method="get" class="filters">
     <input type="text" name="q" value="<?= e($q) ?>" placeholder="Cari judul, deskripsi, atau ID transaksi">
     <select name="status"><?php render_options(['' => 'Semua status'] + STATUSES, $fs); ?></select>
+    <?php if (is_staff($user)): ?>
+    <label class="check"><input type="checkbox" name="esc" value="1" <?= $fe ? 'checked' : '' ?>> Tereskalasi ke tim teknis</label>
+    <?php endif; ?>
     <button type="submit" class="btn btn-small">Cari</button>
     <a class="btn btn-small" href="<?= e(url('tickets/create.php')) ?>">Buat tiket</a>
 </form>

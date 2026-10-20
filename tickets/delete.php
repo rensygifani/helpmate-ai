@@ -18,10 +18,9 @@ if ($t === null || !can_delete_ticket($user, $t)) {
     redirect('tickets/index.php');
 }
 
+// Lampiran dan riwayat dihapus lebih dulu selagi tiket masih ada, karena Security Rules memeriksa pemilik tiket
+db_delete('ticket_files/' . $id);
+db_delete('followups/' . $id);
 $r = db_delete('tickets/' . $id);
-if ($r['ok']) {
-    db_delete('ticket_files/' . $id);   // hapus juga lampirannya
-    db_delete('followups/' . $id);      // dan riwayat tindak lanjutnya
-}
 flash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Tiket berhasil dihapus.' : 'Gagal menghapus: ' . $r['error']);
 redirect('tickets/index.php');

@@ -16,6 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $t = $clean;
 
     if (!$errors) {
+        // Samarkan data sensitif (kartu, OTP, rekening, dan lain-lain) sebelum disimpan
+        [$clean, $maskedLabels] = mask_fields($clean, ['title', 'description']);
+        // Deteksi tiket serupa dari merchant yang sama (mencegah kerja ganda)
+        $similar = find_similar_tickets($clean + ['owner_uid' => $user['uid'], 'created_at' => now_string()], tickets_of_owner($user['uid']), 5, 3);
         $record = $clean + [
             'priority'    => 'sedang',   // sementara 'sedang', nanti diisi otomatis dari hasil Gemini
             'status'      => 'baru',
@@ -27,6 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'created_at'  => now_string(),
             'updated_at'  => now_string(),
         ];
+        if ($similar) {
+            $record['possible_duplicate_of'] = array_column($similar, 'id');
+        }
         $r = db_post('tickets', $record);
         if ($r['ok']) {
             $ticketId = (string) ($r['data']['name'] ?? '');
@@ -43,6 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('warning', 'Tiket dibuat, tetapi ' . $failed . ' lampiran gagal diunggah.');
             } else {
                 flash('success', 'Tiket berhasil dibuat.');
+            }
+            if ($maskedLabels) {
+                flash('warning', 'Data sensitif disamarkan demi keamanan: ' . implode(', ', $maskedLabels) . '. Jangan kirim data tersebut lewat tiket.');
+            }
+            if ($similar) {
+                flash('warning', 'Anda sudah memiliki tiket yang mirip: "' . $similar[0]['title'] . '". Tim kami akan menggabungkannya bila kasusnya sama.');
             }
             redirect('tickets/index.php');
         }

@@ -1,6 +1,6 @@
 <?php
 // Panel hasil AI pada detail tiket (hanya tampil untuk petugas)
-function render_ai_panel(array $user, string $ticketId, array $t, array $kbById): void
+function render_ai_panel(array $user, string $ticketId, array $t, array $kbById, array $similar = []): void
 {
     if (!is_staff($user)) {
         return;
@@ -19,7 +19,35 @@ function render_ai_panel(array $user, string $ticketId, array $t, array $kbById)
             <?= csrf_field() ?><input type="hidden" name="id" value="<?= e($ticketId) ?>"><input type="hidden" name="mode" value="summary">
             <button type="submit" class="btn btn-small">Ringkasan dan draf balasan</button>
         </form>
+        <form method="post" action="<?= e(url('ai/analyze.php')) ?>">
+            <?= csrf_field() ?><input type="hidden" name="id" value="<?= e($ticketId) ?>"><input type="hidden" name="mode" value="similar">
+            <button type="submit" class="btn btn-small btn-light">Cek tiket serupa dengan AI</button>
+        </form>
     </div>
+
+    <?php if ($similar): ?>
+    <div class="ai-box">
+        <h4>Tiket serupa dari merchant yang sama</h4>
+        <ul class="similar-list">
+        <?php foreach ($similar as $s): ?>
+            <li>
+                <a href="<?= e(url('tickets/view.php?id=' . urlencode($s['id']))) ?>"><?= e($s['title']) ?></a>
+                <span class="badge s-<?= e($s['status']) ?>"><?= e(label(STATUSES, $s['status'])) ?></span>
+                <span class="muted"><?= e(implode(', ', $s['reasons'])) ?></span>
+            </li>
+        <?php endforeach; ?>
+        </ul>
+        <?php $aiS = is_array($t['ai_similar'] ?? null) ? $t['ai_similar'] : null; if ($aiS): ?>
+            <p><strong>Penilaian AI</strong> <span class="muted"><?= e($aiS['checked_at'] ?? '') ?></span></p>
+            <ul class="similar-list">
+            <?php foreach ((array) ($aiS['results'] ?? []) as $row): ?>
+                <li><a href="<?= e(url('tickets/view.php?id=' . urlencode($row['id']))) ?>">Tiket <?= e($row['id']) ?></a>:
+                    <strong><?= !empty($row['same_issue']) ? 'kasus yang sama' : 'kasus berbeda' ?></strong> - <?= e($row['reason'] ?? '') ?></li>
+            <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <?php if ($ai): $x = $ai['extracted'] ?? []; ?>
     <div class="ai-box">

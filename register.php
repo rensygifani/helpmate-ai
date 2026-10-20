@@ -127,6 +127,8 @@ if ($formError !== '') {
     <p class="muted">Sudah punya akun? <a href="<?= e(url('login.php')) ?>">Login</a></p>
 </form>
 
+<?php render_social_buttons('Daftar'); ?>
+
 <script>
 (function () {
     var form = document.getElementById('register-form');

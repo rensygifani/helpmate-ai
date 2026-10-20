@@ -88,8 +88,10 @@ render_errors($errors);
         <input type="password" name="password" required>
     </label>
     <button type="submit" class="btn">Login</button>
-    <p class="muted">Belum punya akun? <a href="<?= e(url('register.php')) ?>">Register</a></p>
+    <p class="muted">Belum punya akun? <a href="<?= e(url('register.php')) ?>">Register</a> &middot; <a href="<?= e(url('forgot.php')) ?>">Lupa password?</a></p>
 </form>
+
+<?php render_social_buttons('Masuk'); ?>
 
 <?php if (!empty($_SESSION['pending_token'])): ?>
 <form method="post" class="card form">

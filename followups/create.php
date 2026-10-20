@@ -32,16 +32,26 @@ if ($errors) {
     flash('error', implode(' ', $errors));
     redirect($back);
 }
+// Samarkan data sensitif pada isi catatan
+[$clean, $maskedLabels] = mask_fields($clean, ['content']);
+if ($maskedLabels) {
+    flash('warning', 'Data sensitif pada catatan disamarkan: ' . implode(', ', $maskedLabels) . '.');
+}
 
 $record = $clean + [
     'author_uid'  => $user['uid'],
     'author_name' => $user['name'],
     'author_role' => $user['role'],
+    'visible_to_merchant' => in_array($clean['type'], FOLLOWUP_MERCHANT_VISIBLE, true),
     'created_at'  => now_string(),
     'updated_at'  => now_string(),
 ];
 $r = db_post('followups/' . $ticketId, $record);
 if ($r['ok']) {
+    // Eskalasi ke tim teknis: tiket ditandai agar mudah ditemukan pada filter "Tereskalasi"
+    if ($clean['type'] === 'eskalasi_teknis') {
+        db_patch('tickets/' . $ticketId, ['escalated' => true, 'escalated_at' => now_string(), 'updated_at' => now_string()]);
+    }
     // Jenis "selesai" sekalian mengubah status tiket
     if ($clean['type'] === 'selesai') {
         db_patch('tickets/' . $ticketId, ['status' => 'selesai', 'updated_at' => now_string()]);

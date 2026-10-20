@@ -29,6 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     [$clean, $errors] = followup_input($_POST);
     $f = array_merge($existing, $clean);
     if (!$errors) {
+        [$clean, $maskedLabels] = mask_fields($clean, ['content']);
+        if ($maskedLabels) {
+            flash('warning', 'Data sensitif pada catatan disamarkan: ' . implode(', ', $maskedLabels) . '.');
+        }
+        $clean['visible_to_merchant'] = in_array($clean['type'], FOLLOWUP_MERCHANT_VISIBLE, true);
         $clean['updated_at'] = now_string();
         $clean['edited_at']  = now_string();
         $r = db_patch('followups/' . $ticketId . '/' . $id, $clean);
@@ -46,4 +51,3 @@ echo '<div class="card">';
 render_followup_form($f, 'followups/edit.php', $ticketId, 'Simpan perubahan', url($viewUrl), 'followup-edit');
 echo '</div>';
 render_footer();
- 

@@ -28,4 +28,3 @@ if ($f === null || !can_delete_followup($user, $f)) {
 $r = db_delete('followups/' . $ticketId . '/' . $id);
 flash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Catatan berhasil dihapus.' : 'Gagal menghapus: ' . $r['error']);
 redirect($back);
- 

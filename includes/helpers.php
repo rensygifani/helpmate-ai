@@ -85,6 +85,22 @@ function require_kb_editor(): array
     return $user;
 }
 
+function is_admin(?array $user = null): bool
+{
+    $user = $user ?? current_user();
+    return $user !== null && in_array($user['role'] ?? '', ['admin', 'super_admin'], true);
+}
+
+function require_admin(): array
+{
+    $user = require_login();
+    if (!is_admin($user)) {
+        http_response_code(403);
+        exit('Halaman ini khusus Admin atau Super Admin.');
+    }
+    return $user;
+}
+
 function is_super_admin(?array $user = null): bool
 {
     $user = $user ?? current_user();
@@ -222,4 +238,30 @@ function render_avatar(array $u, string $extra = ''): void
     } else {
         echo '<span class="' . e($cls) . '">' . e(strtoupper(mb_substr((string) ($u['name'] ?? '?'), 0, 1))) . '</span>';
     }
+}
+
+// Daftar tiket yang boleh dilihat pengguna. Petugas melihat semua tiket; merchant hanya tiket miliknya
+// (difilter di sisi Firebase memakai orderBy owner_uid, sesuai Security Rules).
+function tickets_for_user(array $user): array
+{
+    $r = is_staff($user)
+        ? db_get('tickets')
+        : db_get('tickets', null, ['orderBy' => 'owner_uid', 'equalTo' => $user['uid']]);
+    return $r['ok'] ? collection_to_list($r['data']) : [];
+}
+
+// Semua tiket milik satu merchant (dipakai deteksi tiket serupa)
+function tickets_of_owner(string $ownerUid): array
+{
+    $r = db_get('tickets', null, ['orderBy' => 'owner_uid', 'equalTo' => $ownerUid]);
+    return $r['ok'] ? collection_to_list($r['data']) : [];
+}
+
+// Riwayat tindak lanjut satu tiket. Merchant hanya menerima catatan yang boleh dibaca merchant.
+function followups_for(array $user, string $ticketId): array
+{
+    $r = is_staff($user)
+        ? db_get('followups/' . $ticketId)
+        : db_get('followups/' . $ticketId, null, ['orderBy' => 'visible_to_merchant', 'equalTo' => true]);
+    return ['ok' => $r['ok'], 'error' => $r['error'], 'list' => $r['ok'] ? collection_to_list($r['data']) : []];
 }

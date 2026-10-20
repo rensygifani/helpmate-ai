@@ -54,20 +54,6 @@ function gemini_call(string $system, string $userText, array $function): array
     return ['ok' => false, 'data' => null, 'error' => 'Semua model Gemini sedang sibuk atau tidak tersedia. Tunggu beberapa menit lalu klik tombolnya lagi. Rincian terakhir: ' . $last];
 }
 
-// ---------- Penyamaran data sensitif sebelum dikirim ke Gemini ----------
-function mask_sensitive(string $text): string
-{
-    // Nomor kartu (13-19 digit, boleh dipisah spasi atau tanda minus)
-    $text = preg_replace_callback('/\b\d(?:[ -]?\d){12,18}\b/', function ($m) {
-        $digits = preg_replace('/\D/', '', $m[0]);
-        return '[KARTU ****' . substr($digits, -4) . ']';
-    }, $text);
-    // Email dan nomor telepon
-    $text = preg_replace('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/', '[EMAIL]', $text);
-    $text = preg_replace('/(?<!\d)(?:\+62|62|0)8\d{8,11}(?!\d)/', '[TELEPON]', $text);
-    return $text;
-}
-
 function ai_clip($v, int $max): string
 {
     return mb_substr(trim((string) $v), 0, $max);
@@ -198,5 +184,83 @@ function ai_summarize_reply(array $ticket, array $kbArticles, array $followups =
         'suggested_reply' => ai_clip($d['suggested_reply'] ?? '', 2000),
         'related_kb_ids'  => array_slice($ids, 0, 3),
         'summarized_at'   => now_string(),
+    ], 'error' => null];
+}
+
+
+// ---------- AI 3 (Rensy): memastikan tiket serupa ----------
+// $candidates berasal dari find_similar_tickets(). Gemini menilai apakah kandidat benar-benar kasus yang sama.
+function ai_confirm_similar(array $ticket, array $candidates): array
+{
+    $ids = [];
+    $txt = "Tiket baru:\n" . ai_ticket_text($ticket) . "\n\nTiket sebelumnya dari merchant yang sama:\n";
+    foreach (array_slice($candidates, 0, 5) as $c) {
+        $ids[(string) $c['id']] = true;
+        $txt .= '[ID: ' . $c['id'] . '] ' . mask_sensitive((string) ($c['title'] ?? '')) . ' (status ' . ($c['status'] ?? '') . ', dibuat ' . ($c['created_at'] ?? '') . ")\n";
+        $full = $c['full'] ?? null;
+        if (is_array($full)) {
+            $txt .= '   Isi: ' . mask_sensitive(mb_substr((string) ($full['description'] ?? ''), 0, 400)) . "\n";
+        }
+    }
+    $system = "Kamu asisten helpdesk payment gateway. Bandingkan tiket baru dengan tiket sebelumnya dari merchant yang sama. "
+        . "Isi fungsi check_similar: untuk setiap tiket sebelumnya, tentukan apakah melaporkan kejadian yang sama (same_issue true) "
+        . "atau hanya mirip tetapi kejadian berbeda (false), disertai alasan singkat. Jangan mengarang ID.";
+    $function = [
+        'name'        => 'check_similar',
+        'description' => 'Penilaian kemiripan tiket.',
+        'parameters'  => [
+            'type' => 'OBJECT',
+            'properties' => [
+                'results' => ['type' => 'ARRAY', 'items' => ['type' => 'OBJECT', 'properties' => [
+                    'id'         => ['type' => 'STRING'],
+                    'same_issue' => ['type' => 'BOOLEAN'],
+                    'reason'     => ['type' => 'STRING'],
+                ], 'required' => ['id', 'same_issue', 'reason']]],
+            ],
+            'required' => ['results'],
+        ],
+    ];
+    $r = gemini_call($system, $txt, $function);
+    if (!$r['ok']) {
+        return $r;
+    }
+    $out = [];
+    foreach ((array) ($r['data']['results'] ?? []) as $row) {
+        if (is_array($row) && isset($row['id']) && isset($ids[(string) $row['id']])) {
+            $out[] = ['id' => (string) $row['id'], 'same_issue' => (bool) ($row['same_issue'] ?? false), 'reason' => ai_clip($row['reason'] ?? '', 250)];
+        }
+    }
+    return ['ok' => true, 'data' => ['results' => $out, 'checked_at' => now_string()], 'error' => null];
+}
+
+// ---------- AI 4 (Gherald): ringkasan harian untuk admin ----------
+// $stats berisi angka agregat dan judul tiket penting (sudah disamarkan), bukan data pribadi merchant.
+function ai_daily_summary(string $date, array $stats): array
+{
+    $system = "Kamu analis helpdesk payment gateway. Dari statistik harian yang diberikan, tulis ringkasan untuk atasan dalam bahasa Indonesia. "
+        . "Isi fungsi daily_summary. Hanya gunakan angka yang ada pada data; jangan menambah angka baru.";
+    $function = [
+        'name'        => 'daily_summary',
+        'description' => 'Ringkasan harian penanganan tiket.',
+        'parameters'  => [
+            'type' => 'OBJECT',
+            'properties' => [
+                'summary'         => ['type' => 'STRING', 'description' => 'Ringkasan 3-4 kalimat.'],
+                'highlights'      => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'description' => 'Hal penting hari itu.'],
+                'recommendations' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'description' => 'Saran tindak lanjut.'],
+            ],
+            'required' => ['summary', 'highlights', 'recommendations'],
+        ],
+    ];
+    $r = gemini_call($system, "Tanggal: $date\nStatistik (JSON):\n" . json_encode($stats, JSON_UNESCAPED_UNICODE), $function);
+    if (!$r['ok']) {
+        return $r;
+    }
+    $d    = $r['data'];
+    $list = fn($v) => array_slice(array_map(fn($x) => ai_clip($x, 250), array_values(array_filter((array) $v, 'is_string'))), 0, 5);
+    return ['ok' => true, 'data' => [
+        'summary'         => ai_clip($d['summary'] ?? '', 900),
+        'highlights'      => $list($d['highlights'] ?? []),
+        'recommendations' => $list($d['recommendations'] ?? []),
     ], 'error' => null];
 }

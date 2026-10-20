@@ -227,3 +227,48 @@ input:disabled{background:#eef3f3;color:var(--muted);cursor:not-allowed}
 .ai-box{background:var(--teal-soft);border:1px solid var(--line);border-radius:var(--r-sm);padding:16px 18px;margin:0 0 16px}
 .ai-box h4{margin:0 0 8px}
 .ai-box textarea{width:100%}
+
+
+/* ---------- Checkpoint 3: tiket serupa, saran panduan, portal, analitik ---------- */
+.similar-list{margin:6px 0 10px;padding-left:18px}
+.similar-list li{margin:6px 0}
+.kb-suggest{margin:-6px 0 14px;padding:12px 14px;border:1px dashed var(--line);border-radius:var(--r-sm);background:var(--teal-soft)}
+.kb-suggest h4{margin:0 0 6px;font-size:14px}
+.kb-suggest ul{margin:0;padding-left:18px}
+.kb-suggest li{margin:6px 0}
+.kb-suggest .snip{display:block;color:var(--muted,#667);font-size:13px}
+.hint{font-size:13px;color:var(--muted,#667);margin:-6px 0 12px}
+.steps{display:flex;gap:6px;margin:8px 0}
+.steps .step{flex:1;text-align:center;font-size:12px;padding:6px 4px;border-radius:999px;background:#e9eeef;color:#667}
+.steps .step.done{background:var(--teal);color:#fff}
+.steps .step.now{background:#16393b;color:#fff;font-weight:700}
+.ticket-card{padding:16px 18px;margin:0 0 14px}
+.ticket-card h3{margin:0 0 6px}
+.need-action{border-left:4px solid #e0a100;background:#fff8e1}
+.bars .bar-row{display:grid;grid-template-columns:170px 1fr 36px;gap:10px;align-items:center;margin:6px 0;font-size:14px}
+.bars .bar{height:14px;border-radius:7px;background:#e9eeef;overflow:hidden}
+.bars .bar span{display:block;height:100%;background:var(--teal)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:0 0 18px}
+.kpis .card{padding:14px 16px}
+.kpis .num{display:block;font-size:26px;font-weight:800}
+.daychart{width:100%;height:150px}
+.two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+
+.check{display:inline-flex;align-items:center;gap:6px;font-size:14px}
+
+
+/* ---------- Login sosial (Google dan GitHub) ---------- */
+.social{margin-top:20px}
+.divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:0 0 14px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.social-row{display:grid;gap:10px}
+.social-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:46px;padding:10px 16px;border-radius:var(--r-sm);font:inherit;font-weight:600;font-size:15px;cursor:pointer;transition:box-shadow .15s,background .15s,transform .1s}
+.social-btn svg{width:20px;height:20px;flex:none}
+.social-google{background:#fff;color:#1f2d2f;border:1px solid #c9d6d6}
+.social-google:hover{background:#f7fafa;box-shadow:0 2px 8px rgba(13,43,46,.14)}
+.social-github{background:#24292f;color:#fff;border:1px solid #24292f}
+.social-github:hover{background:#1b1f23;box-shadow:0 2px 8px rgba(13,43,46,.3)}
+.social-btn:active{transform:translateY(1px)}
+.social-btn[disabled]{opacity:.6;cursor:wait}
+.social-msg{min-height:20px;margin:10px 0 0;font-size:13.5px;color:var(--muted);text-align:center}
+.social-msg.error{color:var(--red)}

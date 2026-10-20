@@ -45,6 +45,27 @@ if ($mode === 'extract') {
     } else {
         flash('error', $r['error']);
     }
+} elseif ($mode === 'similar') {
+    $others = tickets_of_owner((string) ($t['owner_uid'] ?? ''));
+    $byId   = [];
+    foreach ($others as $o) {
+        $byId[$o['id']] = $o;
+    }
+    $cands = find_similar_tickets($t + ['id' => $id], $others, 3, 5);
+    foreach ($cands as $k => $c) {
+        $cands[$k]['full'] = $byId[$c['id']] ?? null;
+    }
+    if (!$cands) {
+        flash('success', 'Tidak ditemukan tiket yang cukup mirip dari merchant ini.');
+    } else {
+        $r = ai_confirm_similar($t, $cands);
+        if ($r['ok']) {
+            $s = db_patch('tickets/' . $id, ['ai_similar' => $r['data']]);
+            flash($s['ok'] ? 'success' : 'error', $s['ok'] ? 'Pengecekan tiket serupa selesai.' : 'Gagal menyimpan hasil AI: ' . $s['error']);
+        } else {
+            flash('error', $r['error']);
+        }
+    }
 } elseif ($mode === 'apply') {
     $ai = $t['ai'] ?? null;
     if (!is_array($ai) || !isset(CATEGORIES[$ai['category'] ?? ''], PRIORITIES[$ai['priority'] ?? ''])) {

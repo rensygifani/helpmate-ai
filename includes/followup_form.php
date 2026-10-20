@@ -2,14 +2,14 @@
 // Fungsi pendukung modul Riwayat Tindak Lanjut (node followups/{ticketId}/{id}):
 // validasi input, hak akses, form, dan tampilan daftar riwayat pada detail tiket.
 
-function followup_input(array $in): array
+function followup_input(array $in, array $allowed = FOLLOWUP_STAFF_TYPES): array
 {
     $errors = [];
     $clean  = [
         'type'    => (string) ($in['type'] ?? 'catatan'),
         'content' => trim((string) ($in['content'] ?? '')),
     ];
-    if (!isset(FOLLOWUP_TYPES[$clean['type']])) {
+    if (!in_array($clean['type'], $allowed, true)) {
         $errors[] = 'Jenis tindakan tidak valid.';
     }
     if ($clean['content'] === '' || mb_strlen($clean['content']) > 2000) {
@@ -46,7 +46,7 @@ function render_followup_form(array $f, string $action, string $ticketId, string
     <input type="hidden" name="ticket_id" value="<?= e($ticketId) ?>">
     <?php if (!empty($f['id'])): ?><input type="hidden" name="id" value="<?= e($f['id']) ?>"><?php endif; ?>
     <label>Jenis tindakan
-        <select name="type"><?php render_options(FOLLOWUP_TYPES, $f['type'] ?? 'catatan'); ?></select>
+        <select name="type"><?php render_options(array_intersect_key(FOLLOWUP_TYPES, array_flip(FOLLOWUP_STAFF_TYPES)), $f['type'] ?? 'catatan'); ?></select>
     </label>
     <label>Isi tindakan
         <textarea name="content" rows="4" maxlength="2000" required><?= e($f['content'] ?? '') ?></textarea>
@@ -62,8 +62,9 @@ function render_followup_form(array $f, string $action, string $ticketId, string
 // Read: daftar riwayat tindak lanjut satu tiket, dari yang paling awal
 function render_followups(array $user, string $ticketId, array $ticket): void
 {
-    $r    = db_get('followups/' . $ticketId);
-    $list = $r['ok'] ? array_reverse(collection_to_list($r['data'])) : [];
+    // Merchant hanya menerima catatan yang boleh dibaca merchant (difilter di Firebase)
+    $r    = followups_for($user, $ticketId);
+    $list = array_reverse($r['list']);
     $back = url('tickets/view.php?id=' . urlencode($ticketId));
     ?>
     <h3>Riwayat tindak lanjut</h3>
@@ -98,5 +99,16 @@ function render_followups(array $user, string $ticketId, array $ticket): void
     <?php if (can_add_followup($user)): ?>
         <h4>Catat tindakan baru</h4>
         <?php render_followup_form(['type' => 'catatan', 'content' => ''], 'followups/create.php', $ticketId, 'Simpan tindakan', $back); ?>
+    <?php elseif (($ticket['owner_uid'] ?? '') === $user['uid'] && ($ticket['status'] ?? '') !== 'selesai'): ?>
+        <h4>Tambah informasi atau balas petugas</h4>
+        <form method="post" action="<?= e(url('followups/reply.php')) ?>" class="form followup-form">
+            <?= csrf_field() ?>
+            <input type="hidden" name="ticket_id" value="<?= e($ticketId) ?>">
+            <label>Pesan Anda
+                <textarea name="content" rows="4" maxlength="2000" required placeholder="Contoh: ID transaksinya TRX-20261015-001, waktu kejadian pukul 10.05."></textarea>
+            </label>
+            <p class="muted">Jangan menulis nomor kartu lengkap, PIN, OTP, atau password. Data seperti itu otomatis disamarkan.</p>
+            <div><button type="submit" class="btn">Kirim balasan</button></div>
+        </form>
     <?php endif;
 }

@@ -65,4 +65,3 @@ if (!$res['ok']) {
 </table>
 </div>
 <?php render_footer();
- 

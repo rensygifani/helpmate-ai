@@ -30,10 +30,13 @@ if (is_staff($user) && !empty($t['ai_reply']['related_kb_ids'])) {
     }
 }
 
+// Tiket serupa dari merchant yang sama (hanya untuk petugas)
+$similar = is_staff($user) ? find_similar_tickets($t + ['id' => $id], tickets_of_owner((string) ($t['owner_uid'] ?? '')), 4, 5) : [];
+
 render_header('Detail Tiket', 'tickets');
 ?>
 <div class="card detail">
-    <h2><?= e($t['title'] ?? '') ?></h2>
+    <h2><?= e($t['title'] ?? '') ?> <?php if (is_staff($user) && !empty($t['escalated']) && ($t['status'] ?? '') !== 'selesai'): ?><span class="badge p-kritis">Tereskalasi</span> <?php endif; ?><?php if (is_staff($user) && !empty($t['possible_duplicate_of'])): ?><span class="badge p-tinggi" title="Sistem menemukan tiket serupa dari merchant yang sama">Mungkin duplikat</span><?php endif; ?></h2>
     <p>
         <span class="badge p-<?= e($t['priority'] ?? '') ?>">Prioritas: <?= e(label(PRIORITIES, $t['priority'] ?? '')) ?></span>
         <span class="badge s-<?= e($t['status'] ?? '') ?>"><?= e(label(STATUSES, $t['status'] ?? '')) ?></span>
@@ -73,7 +76,7 @@ render_header('Detail Tiket', 'tickets');
     </script>
     <?php endif; ?>
 
-    <?php render_ai_panel($user, $id, $t, $kbById); ?>
+    <?php render_ai_panel($user, $id, $t, $kbById, $similar); ?>
     <?php render_followups($user, $id, $t); ?>
 
     <p>

@@ -49,4 +49,3 @@ function render_kb_form(array $a, string $submitLabel): void
 </form>
 <?php
 }
- 
