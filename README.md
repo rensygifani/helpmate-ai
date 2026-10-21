@@ -12,7 +12,7 @@ Semua data yang dipakai di website ini hanya data contoh (dummy).
 
 Penanganan kendala payment gateway sering masih lewat WhatsApp, email, dan spreadsheet. Akibatnya laporan tercecer, data laporan sering tidak lengkap, dan satu masalah bisa dilaporkan oleh beberapa orang sekaligus. HelpMate AI dibuat supaya laporan terkumpul di satu tempat dan statusnya bisa dipantau.
 
-## Fitur yang sudah ada (Checkpoint 1)
+## Fitur yang sudah ada (Checkpoint 1 dan 2)
 
 - Register dan login memakai Firebase Authentication
 - Email verifikasi setelah register
@@ -20,11 +20,12 @@ Penanganan kendala payment gateway sering masih lewat WhatsApp, email, dan sprea
 - CRUD Knowledge Base atau panduan solusi (tambah, lihat, ubah, hapus) ke Firebase Realtime Database
 - Pembagian role: merchant, cs, tim_teknis, dan admin
 - Dashboard ringkasan jumlah tiket dan artikel
+- CRUD Riwayat Tindak Lanjut per tiket (tambah, lihat, ubah, hapus) ke Firebase Realtime Database (Checkpoint 2)
+- Fitur AI dengan Gemini API (Checkpoint 2): ekstraksi data transaksi dari keluhan, deteksi data yang kurang, klasifikasi kategori, saran prioritas, ringkasan kronologi, draf balasan, dan artikel Knowledge Base terkait. Hasil AI hanya saran, petugas yang menerapkannya
+- Penyamaran nomor kartu, email, dan telepon sebelum teks dikirim ke Gemini
 
 ## Rencana fitur berikutnya
 
-- CRUD Riwayat Tindak Lanjut (Checkpoint 2)
-- Integrasi Gemini API untuk membaca keluhan, menentukan kategori dan prioritas, serta membuat draf balasan (Checkpoint 2)
 - Upload lampiran, deteksi tiket serupa, ringkasan harian, dan pengetatan Security Rules (Checkpoint 3)
 
 ## Teknologi
@@ -32,6 +33,7 @@ Penanganan kendala payment gateway sering masih lewat WhatsApp, email, dan sprea
 - PHP 8 atau lebih baru (ekstensi cURL harus aktif), tanpa framework dan tanpa Composer
 - Firebase Authentication
 - Firebase Realtime Database
+- Gemini API (function calling, dipanggil dari server PHP)
 - HTML dan CSS biasa
 
 Koneksi ke Firebase memakai REST API lewat cURL. Semua fungsinya ada di `includes/firebase.php`.
@@ -46,7 +48,7 @@ Koneksi ke Firebase memakai REST API lewat cURL. Semua fungsinya ada di `include
 3. Ambil dua data dari Firebase:
    - Web API Key: Project settings, tab General.
    - Alamat database: bagian atas halaman Realtime Database.
-4. Salin `config.example.php` menjadi `config.local.php`, lalu isi `FIREBASE_API_KEY` dan `FIREBASE_DB_URL`.
+4. Salin `config.example.php` menjadi `config.local.php`, lalu isi `FIREBASE_API_KEY` dan `FIREBASE_DB_URL`. Untuk fitur AI, buat API key di Google AI Studio lalu isi `GEMINI_API_KEY`.
 5. Jalankan perintah ini di folder proyek:
    ```
    php -S localhost:8000
@@ -88,6 +90,17 @@ Tiket (node `tickets`):
 - Update: `tickets/edit.php`
 - Delete: `tickets/delete.php`
 
+Riwayat Tindak Lanjut (node `followups/{ticketId}`):
+- Create: `followups/create.php` (Rensy)
+- Read: daftar riwayat pada `tickets/view.php`, fungsi `render_followups` di `includes/followup_form.php` (Rensy)
+- Update: `followups/edit.php` (Gherald)
+- Delete: `followups/delete.php` (Gherald)
+
+Fitur AI:
+- Ekstraksi, klasifikasi, dan prioritas: `ai_extract_classify` di `includes/gemini.php` (Rensy)
+- Ringkasan, draf balasan, dan artikel terkait: `ai_summarize_reply` di `includes/gemini.php` (Gherald)
+- Endpoint dan tombol: `ai/analyze.php`, `includes/ai_panel.php`
+
 Knowledge Base (node `knowledge_base`):
 - Create: `knowledge/create.php`
 - Read: `knowledge/index.php` dan `knowledge/view.php`
@@ -101,5 +114,39 @@ users/{uid}            name, email, role, created_at
 tickets/{id}           title, description, category, payment_method, transaction_id, amount,
                        priority, status, owner_uid, owner_email, owner_name, created_at, updated_at
 knowledge_base/{id}    title, category, keywords, content, author_uid, author_email, created_at, updated_at
+followups/{ticketId}/{id}  type, content, author_uid, author_name, author_role, created_at, updated_at, edited_at
+tickets/{id}/ai        category, priority, priority_reason, extracted, missing_fields, analyzed_at
+tickets/{id}/ai_reply  summary, suggested_reply, related_kb_ids, summarized_at
 ```
 
+## Catatan
+
+- File `config.local.php` berisi kunci Firebase dan sudah dimasukkan ke `.gitignore`, jadi jangan di-upload ke GitHub.
+- Aturan database saat ini masih sederhana. Semua user yang sudah login bisa membaca data tiket, tetapi di website tiket merchant sudah difilter supaya hanya miliknya yang tampil. Aturannya akan diperketat di checkpoint berikutnya.
+- Panggilan Gemini dilakukan dari server PHP (bukan Cloud Function) supaya tetap satu aplikasi dan kunci tetap di config.local.php. Kunci tidak pernah dikirim ke browser.
+- Nama model Gemini sering berganti. Atur `GEMINI_MODEL` di `config.local.php`; jika model dijawab 404, kode otomatis mencoba model cadangan. Cek daftar model terbaru di https://ai.google.dev/gemini-api/docs/models.
+- Firebase Hosting tidak bisa menjalankan PHP, jadi untuk deploy akhir dipakai hosting lain yang mendukung PHP.
+
+
+## Checkpoint 3 (fitur akhir)
+- Deteksi tiket serupa dari merchant yang sama: skor otomatis (ID transaksi, nominal, metode bayar, kategori, kemiripan teks, waktu) dan konfirmasi Gemini lewat tombol "Cek tiket serupa dengan AI". Tiket baru yang mirip diberi tanda "Mungkin duplikat" dan merchant diberi peringatan.
+- Penyamaran data sensitif lengkap (`includes/mask.php`): nomor kartu, rekening, NIK, OTP/PIN, password, kunci API, email, telepon. Dijalankan saat tiket dan catatan disimpan, serta sebelum teks dikirim ke Gemini.
+- Portal Merchant (`portal.php`): tahapan status tiket, perkembangan terakhir, dan balasan merchant (`followups/reply.php`). Catatan internal petugas tidak ditampilkan ke merchant.
+- Saran panduan sebelum tiket dikirim (`knowledge/suggest.php`): artikel Knowledge Base yang relevan muncul saat merchant mengetik keluhan.
+- Dashboard admin dan analitik (`admin/analytics.php`): KPI, grafik 14 hari, per kategori/prioritas/status/metode bayar, SLA respons, peringatan gangguan, artikel panduan paling sering terkait.
+- Ringkasan harian dengan Gemini (`admin/daily.php`), bisa otomatis lewat `cron/daily.php`.
+- Security Rules diperketat: merchant hanya membaca tiket dan lampirannya sendiri, catatan internal tidak terbaca merchant, ringkasan harian hanya admin.
+- Reset password (`forgot.php`) lewat Firebase Authentication.
+- Eskalasi ke Tim Teknis: tiket ditandai `escalated`, tampil sebagai badge, filter pada daftar tiket, dan banner pada dashboard.
+- Login dengan Google dan GitHub (`includes/social_login.php`, `auth/social.php`); cara mengaktifkan ada di `SOCIAL_LOGIN.md`.
+- Deploy: `Dockerfile`, `render.yaml`, dan `DEPLOY.md`.
+- Catatan: lampiran bukti disimpan di Realtime Database (`ticket_files`, gambar dikecilkan di browser), bukan Firebase Storage, karena Cloud Storage for Firebase mewajibkan paket Blaze berbayar (https://firebase.google.com/docs/storage/faqs-storage-changes-announced-sept-2024).
+
+### Struktur data tambahan
+```
+tickets/{id}/escalated               true jika dieskalasi ke tim teknis (dan escalated_at)
+tickets/{id}/possible_duplicate_of   daftar ID tiket serupa
+tickets/{id}/ai_similar              hasil penilaian AI (results, checked_at)
+followups/{ticketId}/{id}            + visible_to_merchant (true/false)
+daily_summaries/{YYYY-MM-DD}         summary, highlights, recommendations, stats, generated_at, generated_by
+```

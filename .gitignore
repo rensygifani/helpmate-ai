@@ -3,3 +3,8 @@ config.local.php
 vendor/
 *.log
 .DS_Store
+
+config.local.php
+
+helpmate-ai/
+config.local.php

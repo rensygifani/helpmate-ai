@@ -47,7 +47,8 @@ function http_json(string $method, string $url, ?array $body = null): array
 
 function firebase_auth(string $endpoint, array $body): array
 {
-    $url = 'https://identitytoolkit.googleapis.com/v1/accounts:' . $endpoint . '?key=' . urlencode((string) cfg('FIREBASE_API_KEY'));
+    $base = rtrim((string) (cfg('FIREBASE_AUTH_BASE') ?: 'https://identitytoolkit.googleapis.com/v1'), '/');
+    $url = $base . '/accounts:' . $endpoint . '?key=' . urlencode((string) cfg('FIREBASE_API_KEY'));
     return http_json('POST', $url, $body);
 }
 
@@ -60,7 +61,7 @@ function auth_error_text(?string $code): string
         'INVALID_PASSWORD'            => 'Email atau password salah.',
         'EMAIL_NOT_FOUND'             => 'Email atau password salah.',
         'USER_DISABLED'               => 'Akun ini dinonaktifkan.',
-        'WEAK_PASSWORD'               => 'Password terlalu lemah (minimal 6 karakter).',
+        'WEAK_PASSWORD'               => 'Password terlalu lemah. Gunakan minimal 8 karakter dengan huruf kapital, huruf kecil, angka, dan karakter khusus.',
         'TOO_MANY_ATTEMPTS_TRY_LATER' => 'Terlalu banyak percobaan. Coba lagi beberapa saat lagi.',
         'INVALID_EMAIL'               => 'Format email tidak valid.',
     ];
@@ -102,16 +103,21 @@ function current_token(): ?string
 
 // Realtime Database
 
-function db_url(string $path, ?string $token): string
+function db_url(string $path, ?string $token, array $query = []): string
 {
     $base = rtrim((string) cfg('FIREBASE_DB_URL'), '/');
-    return $base . '/' . trim($path, '/') . '.json?auth=' . urlencode((string) $token);
+    $qs   = ['auth' => (string) $token];
+    foreach ($query as $key => $value) {
+        $qs[$key] = json_encode($value);   // contoh: orderBy="owner_uid", equalTo="abc"
+    }
+    return $base . '/' . trim($path, '/') . '.json?' . http_build_query($qs);
 }
 
-// Read: ambil data dari sebuah path
-function db_get(string $path, ?string $token = null): array
+// Read: ambil data dari sebuah path. $query dipakai untuk filter di sisi Firebase,
+// contoh: ['orderBy' => 'owner_uid', 'equalTo' => $uid]
+function db_get(string $path, ?string $token = null, array $query = []): array
 {
-    return http_json('GET', db_url($path, $token ?? current_token()));
+    return http_json('GET', db_url($path, $token ?? current_token(), $query));
 }
 
 // Create: tambah data baru, ID dibuat otomatis oleh Firebase (ID-nya ada di data['name'])

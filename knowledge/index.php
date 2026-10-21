@@ -34,7 +34,7 @@ if (!$res['ok']) {
     <?php endif; ?>
 </form>
 
-<div class="card">
+<div class="card table-wrap">
 <table>
     <thead>
         <tr><th>Judul</th><th>Kategori</th><th>Kata kunci</th><th>Diubah</th><?php if (is_kb_editor($user)): ?><th>Aksi</th><?php endif; ?></tr>

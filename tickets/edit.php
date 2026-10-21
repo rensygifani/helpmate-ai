@@ -25,6 +25,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $t = array_merge($existing, $clean);
 
     if (!$errors) {
+        [$clean, $maskedLabels] = mask_fields($clean, ['title', 'description']);
+        if ($maskedLabels) {
+            flash('warning', 'Data sensitif disamarkan demi keamanan: ' . implode(', ', $maskedLabels) . '.');
+        }
         $clean['updated_at'] = now_string();
         $r = db_patch('tickets/' . $id, $clean);
         if ($r['ok']) {

@@ -1,0 +1,22 @@
+# Blueprint Render: New + > Blueprint, pilih repository ini. Isi nilai rahasia di dashboard Render.
+services:
+  - type: web
+    name: helpmate-ai
+    runtime: docker
+    plan: free
+    healthCheckPath: /login.php
+    envVars:
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: FIREBASE_DB_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: CRON_TOKEN
+        sync: false
+      - key: CRON_EMAIL
+        sync: false
+      - key: CRON_PASSWORD
+        sync: false
