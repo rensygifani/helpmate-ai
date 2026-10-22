@@ -1,0 +1,141 @@
+<?php
+
+// Penyamaran data sensitif.
+// Dipakai di dua tempat:
+//  1. saat merchant atau petugas menyimpan tiket dan catatan, supaya data sensitif tidak tersimpan di database
+//  2. sebelum teks dikirim ke Gemini
+// Fungsi mengembalikan teks yang sudah disamarkan dan daftar jenis data yang ditemukan.
+
+function luhn_valid(string $digits): bool
+{
+    $sum = 0;
+    $shouldDouble = false;
+    for ($position = strlen($digits) - 1; $position >= 0; $position--) {
+        $digit = (int) $digits[$position];
+        if ($shouldDouble) {
+            $digit *= 2;
+            if ($digit > 9) {
+                $digit -= 9;
+            }
+        }
+        $sum += $digit;
+        $shouldDouble = !$shouldDouble;
+    }
+    return $sum % 10 === 0;
+}
+
+// Kata di depan angka yang menandakan angka itu ID transaksi, bukan nomor kartu
+function mask_is_id_context(string $before): bool
+{
+    return (bool) preg_match('/(id|trx|transaksi|ref|referensi|order|invoice|inv|va|virtual\s*account|no\.?\s*pesanan)\W{0,6}$/iu', $before);
+}
+
+function mask_sensitive_report(string $text): array
+{
+    $found = [];
+
+    // 1. OTP, PIN, CVV: angka setelah kata kuncinya disamarkan
+    $text = preg_replace_callback('/\b(otp|pin|cvv|cvc|kode\s+verifikasi|kode\s+otp)\b([^\d\n]{0,14})(\d{3,8})\b/iu', function ($match) use (&$found) {
+        $found['otp_pin'] = true;
+        return $match[1] . $match[2] . '[DISAMARKAN]';
+    }, $text);
+
+    // 2. Password dan kata sandi
+    $text = preg_replace_callback('/\b(password|kata\s+sandi|sandi)\b(\s*(?:adalah|=|:)\s*)(\S+)/iu', function ($match) use (&$found) {
+        $found['password'] = true;
+        return $match[1] . $match[2] . '[DISAMARKAN]';
+    }, $text);
+
+    // 3. Kunci API dan token
+    $text = preg_replace_callback('/\b(AIza[0-9A-Za-z_\-]{20,}|sk-[A-Za-z0-9_\-]{20,}|eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,})/', function () use (&$found) {
+        $found['kunci_api'] = true;
+        return '[KUNCI_API]';
+    }, $text);
+    $text = preg_replace_callback('/\b(Bearer\s+)[A-Za-z0-9._\-]{20,}/i', function ($match) use (&$found) {
+        $found['kunci_api'] = true;
+        return $match[1] . '[TOKEN]';
+    }, $text);
+
+    // 4. Email dan telepon
+    $text = preg_replace_callback('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/', function () use (&$found) {
+        $found['email'] = true;
+        return '[EMAIL]';
+    }, $text);
+    $text = preg_replace_callback('/(?<!\d)(?:\+62|62|0)8\d{8,11}(?!\d)/', function () use (&$found) {
+        $found['telepon'] = true;
+        return '[TELEPON]';
+    }, $text);
+
+    // 5. Nomor rekening dan NIK berdasarkan kata di depannya
+    $text = preg_replace_callback('/\b(rekening|norek|no\.?\s*rek|a\/n|account)\b([^\d\n]{0,18})(\d[\d ]{6,18}\d)/iu', function ($match) use (&$found) {
+        $found['rekening'] = true;
+        $digits = preg_replace('/\D/', '', $match[3]);
+        return $match[1] . $match[2] . '[REKENING ***' . substr($digits, -3) . ']';
+    }, $text);
+    $text = preg_replace_callback('/\b(nik|ktp)\b([^\d\n]{0,14})(\d{16})\b/iu', function ($match) use (&$found) {
+        $found['nik'] = true;
+        return $match[1] . $match[2] . '[NIK DISAMARKAN]';
+    }, $text);
+
+    // 6. Nomor kartu: 13-19 digit. Disamarkan jika lolos uji Luhn atau didahului kata kartu,
+    //    kecuali angka itu jelas ID transaksi.
+    $out = '';
+    $cursor = 0;
+    if (preg_match_all('/\b\d(?:[ -]?\d){12,18}\b/', $text, $cardMatches, PREG_OFFSET_CAPTURE)) {
+        foreach ($cardMatches[0] as [$matchedNumber, $offset]) {
+            $digits = preg_replace('/\D/', '', $matchedNumber);
+            $before = substr($text, max(0, $offset - 25), min(25, $offset));
+            $cardWord = (bool) preg_match('/(kartu|card|debit|kredit|visa|master|\bcc)\b[^\d]{0,20}$/iu', $before);
+            $mask = false;
+            if (strlen($digits) >= 13 && strlen($digits) <= 19) {
+                if ($cardWord) {
+                    $mask = true;
+                } elseif (!mask_is_id_context($before) && luhn_valid($digits)) {
+                    $mask = true;
+                }
+            }
+            $out .= substr($text, $cursor, $offset - $cursor);
+            if ($mask) {
+                $found['kartu'] = true;
+                $out .= '[KARTU ****' . substr($digits, -4) . ']';
+            } else {
+                $out .= $matchedNumber;
+            }
+            $cursor = $offset + strlen($matchedNumber);
+        }
+    }
+    $text = $out . substr($text, $cursor);
+
+    return [$text, array_keys($found)];
+}
+
+function mask_sensitive(string $text): string
+{
+    return mask_sensitive_report($text)[0];
+}
+
+const MASK_LABELS = [
+    'kartu' => 'nomor kartu',
+    'rekening' => 'nomor rekening',
+    'nik' => 'NIK',
+    'otp_pin' => 'OTP atau PIN',
+    'password' => 'password',
+    'kunci_api' => 'kunci API atau token',
+    'email' => 'email',
+    'telepon' => 'nomor telepon',
+];
+
+// Samarkan beberapa kolom sekaligus. Mengembalikan [kolom yang sudah bersih, daftar label yang ditemukan]
+function mask_fields(array $data, array $keys): array
+{
+    $labels = [];
+    foreach ($keys as $field) {
+        if (isset($data[$field]) && is_string($data[$field])) {
+            [$data[$field], $found] = mask_sensitive_report($data[$field]);
+            foreach ($found as $maskKey) {
+                $labels[$maskKey] = MASK_LABELS[$maskKey] ?? $maskKey;
+            }
+        }
+    }
+    return [$data, array_values($labels)];
+}

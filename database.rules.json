@@ -1,0 +1,71 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'super_admin'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'super_admin' || (auth.uid === $uid && (!data.exists() ? newData.child('role').val() === 'merchant' : newData.child('role').val() === data.child('role').val())))",
+        "photo": {
+          ".validate": "newData.isString() && newData.val().length < 100000"
+        }
+      }
+    },
+    "tickets": {
+      ".read": "auth != null && ((root.child('users').child(auth.uid).child('role').val() == 'cs' || root.child('users').child(auth.uid).child('role').val() == 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') || (query.orderByChild == 'owner_uid' && query.equalTo == auth.uid))",
+      ".indexOn": [
+        "owner_uid",
+        "created_at"
+      ],
+      "$ticketId": {
+        ".read": "auth != null && ((root.child('users').child(auth.uid).child('role').val() == 'cs' || root.child('users').child(auth.uid).child('role').val() == 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') || data.child('owner_uid').val() == auth.uid)",
+        ".write": "auth != null && ((!data.exists() && newData.child('owner_uid').val() == auth.uid) || (data.exists() && newData.exists() && ((root.child('users').child(auth.uid).child('role').val() == 'cs' || root.child('users').child(auth.uid).child('role').val() == 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') || (data.child('owner_uid').val() == auth.uid && data.child('status').val() == 'baru' && newData.child('status').val() == 'baru' && newData.child('owner_uid').val() == auth.uid && newData.child('priority').val() == data.child('priority').val()))) || (data.exists() && !newData.exists() && ((root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') || (data.child('owner_uid').val() == auth.uid && data.child('status').val() == 'baru'))))",
+        ".validate": "newData.hasChildren(['title', 'description', 'status', 'owner_uid']) && newData.child('title').isString() && newData.child('title').val().length <= 120 && newData.child('description').isString() && newData.child('description').val().length <= 3000",
+        "status": {
+          ".validate": "newData.val().matches(/^(baru|diproses|menunggu_merchant|selesai)$/)"
+        },
+        "priority": {
+          ".validate": "newData.val().matches(/^(rendah|sedang|tinggi|kritis)$/)"
+        }
+      }
+    },
+    "ticket_files": {
+      "$ticketId": {
+        ".read": "auth != null && ((root.child('users').child(auth.uid).child('role').val() == 'cs' || root.child('users').child(auth.uid).child('role').val() == 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') || root.child('tickets').child($ticketId).child('owner_uid').val() == auth.uid)",
+        ".write": "auth != null && !newData.exists() && ((root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') || root.child('tickets').child($ticketId).child('owner_uid').val() == auth.uid)",
+        "$fileId": {
+          ".write": "auth != null && ((!data.exists() && root.child('tickets').child($ticketId).child('owner_uid').val() == auth.uid) || (data.exists() && !newData.exists() && ((root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') || root.child('tickets').child($ticketId).child('owner_uid').val() == auth.uid)))",
+          ".validate": "newData.hasChildren(['name', 'data', 'owner_uid']) && newData.child('owner_uid').val() === auth.uid && newData.child('data').isString() && newData.child('data').val().length < 600000"
+        }
+      }
+    },
+    "knowledge_base": {
+      ".read": "auth != null",
+      "$kbId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'super_admin' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'cs')",
+        ".validate": "newData.hasChildren(['title', 'content'])"
+      }
+    },
+    "followups": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'cs' || root.child('users').child(auth.uid).child('role').val() == 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin')",
+      "$ticketId": {
+        ".indexOn": [
+          "visible_to_merchant"
+        ],
+        ".read": "auth != null && ((root.child('users').child(auth.uid).child('role').val() == 'cs' || root.child('users').child(auth.uid).child('role').val() == 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') || (root.child('tickets').child($ticketId).child('owner_uid').val() == auth.uid && query.orderByChild == 'visible_to_merchant' && query.equalTo == true))",
+        ".write": "auth != null && !newData.exists() && ((root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') || root.child('tickets').child($ticketId).child('owner_uid').val() == auth.uid)",
+        "$fid": {
+          ".write": "auth != null && (((root.child('users').child(auth.uid).child('role').val() == 'cs' || root.child('users').child(auth.uid).child('role').val() == 'tim_teknis' || root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin') && (!data.exists() || data.child('author_uid').val() == auth.uid || (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin'))) || (root.child('tickets').child($ticketId).child('owner_uid').val() == auth.uid && !data.exists() && newData.child('type').val() == 'tanggapan_merchant'))",
+          ".validate": "newData.hasChildren(['type', 'content', 'author_uid']) && newData.child('type').val().matches(/^(catatan|hubungi_merchant|balasan|eskalasi_teknis|perbaikan|selesai|tanggapan_merchant)$/) && newData.child('content').isString() && newData.child('content').val().length <= 2000 && newData.child('author_uid').val() == (data.exists() ? data.child('author_uid').val() : auth.uid)"
+        }
+      }
+    },
+    "daily_summaries": {
+      "$date": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'super_admin')"
+      }
+    }
+  }
+}

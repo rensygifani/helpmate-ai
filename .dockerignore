@@ -1,0 +1,6 @@
+.git
+.gitignore
+config.local.php
+.env
+*.log
+*.zip
