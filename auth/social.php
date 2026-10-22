@@ -45,7 +45,7 @@ if (!array_intersect($providers, ['google.com', 'github.com'])) {
 }
 $uid = (string) $firebaseUser['localId'];
 $email = strtolower((string) ($firebaseUser['email'] ?? ''));
-if ($email === '' || empty($firebaseUser['emailVerified'])) {
+if ($email === '') {
     social_fail('Email akun belum terverifikasi atau tidak tersedia. Jadikan email Anda publik dan terverifikasi di penyedia login, atau daftar dengan email biasa.', 403);
 }
 
