@@ -257,7 +257,7 @@ render_header('Akun Saya', 'profile', 'Kelola foto, data diri, dan keamanan akun
             previewBox.innerHTML = '<img class="avatar avatar-xl" src="' + dataUrl + '" alt="Pratinjau foto">';
             saveButton.disabled = false;
         };
-        img.onerror = function () { URL.revokeObjectURL(url); err.textContent = 'Foto tidak bisa dibaca.'; };
+        img.onerror = function () { URL.revokeObjectURL(url); errorBox.textContent = 'Foto tidak bisa dibaca.'; };
         img.src = url;
     });
 })();
@@ -267,10 +267,10 @@ render_header('Akun Saya', 'profile', 'Kelola foto, data diri, dan keamanan akun
     var newPasswordInput = document.getElementById('new-password');
     var tests = {
         len:     function (value) { return value.length >= 8; },
-        upper:   function (p) { return /[A-Z]/.test(value); },
-        lower:   function (p) { return /[a-z]/.test(value); },
-        digit:   function (p) { return /[0-9]/.test(value); },
-        special: function (p) { return /[^A-Za-z0-9\s]/.test(value); }
+        upper:   function (value) { return /[A-Z]/.test(value); },
+        lower:   function (value) { return /[a-z]/.test(value); },
+        digit:   function (value) { return /[0-9]/.test(value); },
+        special: function (value) { return /[^A-Za-z0-9\s]/.test(value); }
     };
     newPasswordInput.addEventListener('input', function () {
         document.querySelectorAll('#pw-rules li').forEach(function (li) {

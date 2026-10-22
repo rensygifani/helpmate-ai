@@ -107,7 +107,7 @@ function render_ui_scripts(): void
 
     document.querySelectorAll('input[type="password"]').forEach(function (passwordInput) {
         var wrapper = document.createElement('div');
-        wrapper.className = 'pw-wrapper';
+        wrapper.className = 'pw-wrap';
         passwordInput.parentNode.insertBefore(wrapper, passwordInput);
         wrapper.appendChild(passwordInput);
         var toggleButton = document.createElement('button');

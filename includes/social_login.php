@@ -55,7 +55,7 @@ const errors = {
 };
 
 document.querySelectorAll('[data-provider]').forEach(function (providerButton) {
-    btn.addEventListener('click', async function () {
+    providerButton.addEventListener('click', async function () {
         setMsg('Membuka jendela login...', false);
         document.querySelectorAll('[data-provider]').forEach(function (button) { button.disabled = true; });
         try {
